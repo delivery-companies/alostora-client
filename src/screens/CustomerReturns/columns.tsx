@@ -2,11 +2,68 @@ import { governorateArabicNames } from "@/lib/governorateArabicNames ";
 import { orderSecondaryStatusArabicNames } from "@/lib/orderSecondaryStatusArabicNames";
 import { orderStatusArabicNames } from "@/lib/orderStatusArabicNames";
 import type { Order } from "@/services/getOrders";
-import { Flex, Text, rem } from "@mantine/core";
+import { useOrdersStore } from "@/store/returnsStors";
+import { Checkbox, Flex, Text, rem } from "@mantine/core";
 /* eslint-disable react-hooks/rules-of-hooks */
 import type { ColumnDef } from "@tanstack/react-table";
+import { OrdersFullDetails } from "../Orders/components/OrdersFullDetails";
 
 export const columns: ColumnDef<Order>[] = [
+  {
+    id: "select",
+    header: ({ table }) => {
+      const { deleteAllOrders, setAllOrders, isOrderExist } = useOrdersStore();
+
+      return (
+        <Checkbox
+          checked={
+            table.getRowModel().rows.length > 0 &&
+            table
+              .getRowModel()
+              .rows.every((row) => isOrderExist(row.original.id.toString()))
+          }
+          onChange={(event) => {
+            const allTableRowsIds = table.getRowModel().rows.map((row) => ({
+              id: row.original.id.toString(),
+              name: row.original.recipientName,
+            }));
+
+            const isAllSelected = event.currentTarget.checked;
+
+            if (isAllSelected) {
+              setAllOrders(allTableRowsIds);
+              table.toggleAllPageRowsSelected(true);
+            } else {
+              table.toggleAllPageRowsSelected(false);
+              deleteAllOrders();
+            }
+          }}
+        />
+      );
+    },
+    cell: ({ row }) => {
+      const { addOrder, deleteOrder, isOrderExist } = useOrdersStore();
+      return (
+        <div className="flex items-center gap-4">
+          <Checkbox
+            checked={isOrderExist(row.original.id.toString())}
+            onChange={(value) => {
+              const isChecked = value.currentTarget.checked;
+              const { id, recipientName } = row.original;
+              if (isChecked) {
+                addOrder({ id: id.toString(), name: recipientName });
+                row.toggleSelected(true);
+              } else {
+                row.toggleSelected(false);
+                deleteOrder(id.toString());
+              }
+            }}
+          />
+          <OrdersFullDetails order={row.original} />
+        </div>
+      );
+    },
+  },
   {
     accessorKey: "id",
     header: "#",

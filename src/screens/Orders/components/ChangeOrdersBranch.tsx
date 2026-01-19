@@ -59,6 +59,7 @@ export const ChangeOrdersBranch = () => {
           data: {
             governorate: selectedGov!!,
             locationID: +selectedRegoin!!,
+            status: "CHANGE_ADDRESS",
           },
         });
       });

@@ -145,7 +145,11 @@ export const EditEmployee = () => {
         phone: employeeDetails.data.phone,
         branch: employeeDetails.data.branch?.id.toString() || "",
         repository: employeeDetails.data.repository?.id.toString() || "",
-        role: employeeDetails.data.role,
+        role: employeeDetails.data.mainEmergency
+          ? "MAIN_EMERGENCY_EMPLOYEE"
+          : employeeDetails.data.emergency
+          ? "EMERGENCY_EMPLOYEE"
+          : employeeDetails.data.role,
         companyID: employeeDetails.data.company?.id.toString(),
         permissions: employeeDetails.data?.permissions,
         orderStatus: employeeDetails.data?.orderStatus,
@@ -187,7 +191,6 @@ export const EditEmployee = () => {
       toast.error(error.response?.data.message || "حدث خطأ ما");
     },
   });
-  console.log(employeeDetails);
 
   const handleSubmit = (values: z.infer<typeof editEmployeeSchema>) => {
     const formData = new FormData();
@@ -215,6 +218,7 @@ export const EditEmployee = () => {
     formData.append("permissions", JSON.stringify(values.permissions));
     if (
       form.values.role === "INQUIRY_EMPLOYEE" ||
+      form.values.role === "MAIN_EMERGENCY_EMPLOYEE" ||
       form.values.role === "EMERGENCY_EMPLOYEE"
     ) {
       const selectedBranchesIDs = selectedBranches?.map((store) =>
@@ -516,7 +520,15 @@ export const EditEmployee = () => {
                     setSelectedLocations(e);
                   }}
                   placeholder="اختر المنطقة"
-                  data={getSelectOptions(locationsData?.data || [])}
+                  data={
+                    selectedBranches.length > 0
+                      ? getSelectOptions(
+                          locationsData?.data.filter((s) =>
+                            selectedBranches.includes(s.branchId + "")
+                          ) || []
+                        )
+                      : getSelectOptions(locationsData?.data || [])
+                  }
                   limit={100}
                 />
               </Grid.Col>
@@ -544,7 +556,15 @@ export const EditEmployee = () => {
                     setSelectedStores(e);
                   }}
                   placeholder="اختر المتجر"
-                  data={getSelectOptions(storesData?.data || [])}
+                  data={
+                    selectedBranches.length > 0
+                      ? getSelectOptions(
+                          storesData?.data.filter((s) =>
+                            selectedBranches.includes(s.client.branchId + "")
+                          ) || []
+                        )
+                      : getSelectOptions(storesData?.data || [])
+                  }
                   limit={100}
                 />
               </Grid.Col>
@@ -572,7 +592,15 @@ export const EditEmployee = () => {
                     setSelectedEmployees(e);
                   }}
                   placeholder="اختر مندوب"
-                  data={getSelectOptions(employeesData.data)}
+                  data={
+                    selectedBranches.length > 0
+                      ? getSelectOptions(
+                          employeesData?.data.filter((s) =>
+                            selectedBranches.includes(s.branchId + "")
+                          ) || []
+                        )
+                      : getSelectOptions(employeesData?.data || [])
+                  }
                   limit={100}
                 />
               </Grid.Col>

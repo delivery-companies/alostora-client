@@ -1,26 +1,36 @@
 import { AppLayout } from "@/components/AppLayout";
-import type { ReportsFilters } from "@/services/getReports";
-import { Grid, LoadingOverlay, Text } from "@mantine/core";
+import { Grid, Paper, Tabs } from "@mantine/core";
 import { useState } from "react";
-import { DataTable } from "../Employees/data-table";
-import { columns } from "./columns";
 import { TreasuryCard } from "./components/TreasuryCard";
 import { TreasuryFilters } from "./components/TreasuryFilters";
-import { useTransactions } from "@/hooks/useTransactions";
-import { AddTransaction } from "./components/AddTransaction";
+import {
+  useRecevingAgentClients,
+  useTransactions,
+} from "@/hooks/useTransactions";
+import { TransactionTab } from "./Taps/TransactionsTab";
+import { OrdersFilter } from "@/services/getOrders";
+import { RecevingTab } from "./Taps/ReceivingAgentTab";
+
+type ReportsTabsTypes = "TRANSACTIONS" | "RECEING_AGENT";
 
 export const TreasuryScreen = () => {
-  const [filters, setFilters] = useState<ReportsFilters>({
+  const [filters, setFilters] = useState<OrdersFilter>({
     page: 1,
     size: 10,
   });
 
+  const [activeTab, setActiveTab] = useState<ReportsTabsTypes>("TRANSACTIONS");
+
   const { data, isLoading, isError } = useTransactions({
-    page: filters.page,
-    size: filters.size,
-    employee_id: filters.created_by_id ? +filters.created_by_id : undefined,
-    type: filters.type ? filters.type : undefined,
+    ...filters,
   });
+
+  const { data: clients, isFetching } = useRecevingAgentClients(
+    {
+      ...filters,
+    },
+    !!filters.repository_id
+  );
 
   return (
     <AppLayout isError={isError}>
@@ -68,25 +78,55 @@ export const TreasuryScreen = () => {
           isLoading={isLoading}
           color="teal"
         />
-      </Grid>
-      <div className="relative">
-        <LoadingOverlay visible={isLoading} />
-        <div className="flex justify-between ">
-          <Text c="green" size="xl" tt="uppercase" fw={700} mt={25}>
-            المعاملات داخل القاصه
-          </Text>
-          <AddTransaction />
-        </div>
-        <DataTable
-          data={data?.data || []}
-          columns={columns}
-          filters={{
-            ...filters,
-            pagesCount: data?.pagesCount,
-          }}
-          setFilters={setFilters}
+        <TreasuryCard
+          title="أرباح المناديب"
+          value={data?.agentProfit || 0}
+          isLoading={isLoading}
+          color="teal"
         />
-      </div>
+        <TreasuryCard
+          title="أرباح الفرع"
+          value={data?.branchProfit || 0}
+          isLoading={isLoading}
+          color="green"
+        />
+      </Grid>
+      <Tabs
+        keepMounted={false}
+        className="mt-5"
+        variant="pills"
+        radius="md"
+        defaultValue="COMPANY"
+        value={activeTab}
+        onChange={(e) => {
+          if (e) {
+            setActiveTab(e as ReportsTabsTypes);
+          }
+        }}>
+        <Paper className="mb-6 py-2 rounded px-3" withBorder>
+          <Tabs.List grow>
+            <Tabs.Tab value="TRANSACTIONS">العمليات داخل القاصه</Tabs.Tab>
+            <Tabs.Tab value="RECEING_AGENT">ارباح مندوب الاستلام</Tabs.Tab>
+          </Tabs.List>
+        </Paper>
+
+        <Tabs.Panel value="TRANSACTIONS">
+          <TransactionTab
+            isLoading={isLoading}
+            data={data}
+            filters={filters}
+            setFilters={setFilters}
+          />
+        </Tabs.Panel>
+        <Tabs.Panel value="RECEING_AGENT">
+          <RecevingTab
+            isLoading={isFetching}
+            data={clients}
+            filters={filters}
+            setFilters={setFilters}
+          />
+        </Tabs.Panel>
+      </Tabs>
     </AppLayout>
   );
 };

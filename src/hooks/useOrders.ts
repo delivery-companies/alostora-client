@@ -32,6 +32,7 @@ export const useOrders = (
 export const useOrdersByAgent = (
   receivingAgentId?: string,
   clientId?: string,
+  storeId?: string,
   enabled = true
 ) => {
   return useQuery({
@@ -40,9 +41,10 @@ export const useOrdersByAgent = (
       {
         receivingAgentId,
         clientId,
+        storeId,
       },
     ],
-    queryFn: () => getRecevingAgentStores(receivingAgentId, clientId),
+    queryFn: () => getRecevingAgentStores(receivingAgentId, clientId, storeId),
     enabled,
   });
 };
@@ -66,6 +68,7 @@ export const useRepositoryOrders = (
         size: filter.size || 10,
         ...filter,
       }),
+    keepPreviousData: true,
     enabled,
   });
 };

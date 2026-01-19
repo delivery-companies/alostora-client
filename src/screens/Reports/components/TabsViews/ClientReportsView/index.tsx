@@ -47,7 +47,10 @@ export const ClientReportsView = () => {
   } = useOrdersByAgent(
     ordersFilter.delivery_agent_id,
     ordersFilter.client_id,
-    !!ordersFilter.delivery_agent_id || !!ordersFilter.client_id
+    ordersFilter.store_id,
+    !!ordersFilter.delivery_agent_id ||
+      !!ordersFilter.client_id ||
+      !!ordersFilter.store_id
   );
 
   return (

@@ -10,6 +10,7 @@ export interface Store {
   client: {
     id: number;
     name: string;
+    branchId: number;
   };
   deleted?: boolean;
   deletedAt?: string;

@@ -199,21 +199,32 @@ export const columns: ColumnDef<IReport>[] = [
   {
     header: "الملف",
     cell: ({ row }) => {
-      const { id, type } = row.original;
+      const { id, type, url } = row.original;
       const pdfTitle = getReportName(type, row.original);
 
       const { mutateAsync: getReportPDF } = useReportsPDF(pdfTitle);
 
-      const handleDownload = () => {
+      const handleClick = () => {
+        // ✅ Already generated → open in new tab
+        if (url) {
+          window.open(url, "_blank");
+          return;
+        }
+
         toast.promise(getReportPDF(id), {
           loading: "جاري تحميل الكشف...",
           success: "تم تحميل الكشف بنجاح",
           error: (error) => error.message || "حدث خطأ ما",
         });
       };
+
       return (
-        <ActionIcon variant="filled" onClick={handleDownload}>
-          <IconFileTypePdf />
+        <ActionIcon
+          variant="filled"
+          color={url ? "red" : "red"}
+          onClick={handleClick}
+          title={url ? "فتح الملف" : "إنشاء وتحميل الملف"}>
+          <IconFileTypePdf size={18} />
         </ActionIcon>
       );
     },

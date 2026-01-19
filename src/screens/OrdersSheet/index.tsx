@@ -103,6 +103,7 @@ export const OrdersSheet = () => {
     البصرة: "BASRA",
     "ذي قار": "DHI_QAR",
     القادسية: "AL_QADISIYYAH",
+    السليمانية: "SULAYMANIYAH",
     ديالى: "DIYALA",
     دهوك: "DUHOK",
     أربيل: "ERBIL",
@@ -113,6 +114,8 @@ export const OrdersSheet = () => {
     النجف: "NAJAF",
     نينوى: "NINAWA",
     "صلاح الدين": "SALAH_AL_DIN",
+    واسط: "WASIT",
+    "شركات بابل": "BABIL_COMPANIES",
   };
 
   const handleCreateOrders = () => {

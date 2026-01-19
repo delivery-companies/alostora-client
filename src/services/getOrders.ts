@@ -74,6 +74,7 @@ export interface Order {
         clientId: number;
         storeId: number;
         secondaryType: string;
+        url: string | null;
       }[]
     | null;
   repositoryReport:
@@ -82,29 +83,34 @@ export interface Order {
         id: number;
         repositoryId: number;
         secondaryType: string;
+        url: string | null;
       }[]
     | null;
   governorateReport: {
     deleted: boolean;
     id: number;
     governorate: keyof typeof governorateArabicNames;
+    url: string | null;
   };
   branchReport: {
     deleted: boolean;
     id: number;
     branchId: number;
     type: string;
+    url: string | null;
   }[];
   deliveryAgentReport: {
     deleted: boolean;
     id: number;
     deliveryAgentId: number;
+    url: string | null;
   };
   companyReport: {
     deleted: boolean;
     id: number;
     companyId: number;
     secondaryType: string;
+    url: string | null;
   }[];
   client: {
     id: number;
@@ -170,6 +176,15 @@ export interface GetOrdersResponse {
   };
 }
 
+export interface GetOrdersStatisticsResponse {
+  status: string;
+  data: {
+    count: number;
+    repositoryId: number | null;
+    repoName: string | undefined;
+  }[];
+}
+
 export interface OrdersFilter extends Filters {
   order_id?: string;
   processingStatus?: string | null;
@@ -194,6 +209,8 @@ export interface OrdersFilter extends Filters {
   store_id?: string;
   product_id?: string;
   location_id?: string;
+  updated_by?: string;
+  created_by?: string;
   receipt_number?: string;
   recipient_name?: string;
   recipient_phone?: string;
@@ -218,6 +235,7 @@ export interface OrdersFilter extends Filters {
   getOutComing?: boolean;
   delivered?: boolean;
   orderType?: string;
+  notes?: string;
 }
 
 export const getOrdersService = async (
@@ -267,7 +285,10 @@ export const getOrdersService = async (
     orderType,
     delivery_start_date,
     delivery_end_date,
-  }: OrdersFilter = { page: 1, size: 10 }
+    updated_by,
+    created_by,
+    notes,
+  }: OrdersFilter = { page: 1, size: 10 },
 ) => {
   const response = await api.get<GetOrdersResponse>(getOrdersEndpoint, {
     params: {
@@ -294,7 +315,10 @@ export const getOrdersService = async (
       recipient_name: recipient_name || undefined,
       recipient_phone: recipient_phone || undefined,
       recipient_address: recipient_address || undefined,
+      updated_by: updated_by || undefined,
+      created_by: created_by || undefined,
       orderType: orderType || undefined,
+      notes: notes || undefined,
       deleted,
       order_id: order_id ? order_id : undefined,
       processingStatus: processingStatus || undefined,
@@ -311,8 +335,8 @@ export const getOrdersService = async (
       confirmed: forwarded_from_id
         ? undefined
         : from === "DELETED"
-        ? undefined
-        : confirmed,
+          ? undefined
+          : confirmed,
       company_id: company_id || undefined,
       repository_id: repository_id || undefined,
       forwarded: forwarded || undefined,
@@ -341,7 +365,8 @@ export const getRepositoryOrders = async (
     getIncoming,
     getOutComing,
     to_repository_id,
-  }: OrdersFilter = { page: 1, size: 10 }
+    branch_id,
+  }: OrdersFilter = { page: 1, size: 10 },
 ) => {
   const response = await api.get<GetOrdersResponse>(
     "/orders/repositoryOrders",
@@ -360,13 +385,58 @@ export const getRepositoryOrders = async (
         status: status || undefined,
         getIncoming: getIncoming || undefined,
         getOutComing: getOutComing || undefined,
+        branchId: branch_id || undefined,
       },
-    }
+    },
   );
 
   return response.data;
 };
 
+export const getRepositoryOrdersStatistics = async (
+  {
+    page = 1,
+    size = 10,
+    client_id,
+    store_id,
+    repository_id,
+    forwarded,
+    governorate,
+    secondaryStatus,
+    status,
+    forwardedToGov,
+    getIncoming,
+    getOutComing,
+    to_repository_id,
+    branch_id,
+    type,
+  }: OrdersFilter = { page: 1, size: 10 },
+) => {
+  const response = await api.get<GetOrdersStatisticsResponse>(
+    "/orders/returnedRepositoryStatusStatistics",
+    {
+      params: {
+        page,
+        size,
+        client_id: client_id || undefined,
+        store_id: store_id || undefined,
+        governorate: governorate || undefined,
+        repository_id: repository_id || undefined,
+        to_repository_id: to_repository_id || undefined,
+        forwardedToGov: forwardedToGov || undefined,
+        forwarded: forwarded || undefined,
+        secondaryStatus: secondaryStatus,
+        status: status || undefined,
+        getIncoming: getIncoming || undefined,
+        getOutComing: getOutComing || undefined,
+        branchId: branch_id || undefined,
+        type: type || undefined,
+      },
+    },
+  );
+
+  return response.data;
+};
 export interface storeOrders {
   store: {
     id: number;
@@ -390,7 +460,8 @@ export interface GetOrdersStoresResponse {
 }
 export const getRecevingAgentStores = async (
   receivingAgentId?: string,
-  clientId?: string
+  clientId?: string,
+  storeId?: string,
 ) => {
   const response = await api.get<GetOrdersStoresResponse>(
     "/orders/getByStore",
@@ -398,8 +469,9 @@ export const getRecevingAgentStores = async (
       params: {
         receivingAgentId: receivingAgentId || undefined,
         clientId: clientId || undefined,
+        storeId: storeId || undefined,
       },
-    }
+    },
   );
 
   return response.data;

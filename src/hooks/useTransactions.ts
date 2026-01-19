@@ -1,26 +1,47 @@
+import { OrdersFilter } from "@/services/getOrders";
 import {
   CompanyNetFilters,
-  type TransactionFilters,
   getCompanyNetReportsService,
+  getRecevingAgentClientService,
   getTransactionsService,
 } from "@/services/getTransactionsService";
 import { useQuery } from "@tanstack/react-query";
 
-export function useTransactions(
-  { page = 1, size = 10, employee_id, type }: TransactionFilters = {
-    page: 1,
-    size: 10,
-  }
-) {
+export function useTransactions(filter: OrdersFilter = { page: 1, size: 10 }) {
   return useQuery({
-    queryKey: ["transactions", { page, size, employee_id, type }],
+    queryKey: [
+      "transactions",
+      {
+        page: filter.page || 1,
+        size: 10,
+        ...filter,
+      },
+    ],
     queryFn: () =>
       getTransactionsService({
-        page,
-        size,
-        employee_id,
-        type,
+        page: filter.page || 1,
+        size: filter.size || 10,
+        ...filter,
       }),
+  });
+}
+
+export function useRecevingAgentClients(
+  filter: OrdersFilter = { page: 1, size: 10 },
+  enabled = true
+) {
+  return useQuery({
+    queryKey: [
+      "receiving-clients",
+      {
+        ...filter,
+      },
+    ],
+    queryFn: () =>
+      getRecevingAgentClientService({
+        ...filter,
+      }),
+    enabled,
   });
 }
 export function useCompanyNetReports(

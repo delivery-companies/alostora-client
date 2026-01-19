@@ -1,18 +1,72 @@
-// import { Button } from "@/components/ui/button";
-// import { useChangeOrderStatus } from "@/hooks/useChangeOrderStatus";
 import { governorateArabicNames } from "@/lib/governorateArabicNames ";
 import { orderStatusArabicNames } from "@/lib/orderStatusArabicNames";
 import type { Order } from "@/services/getOrders";
-import { Badge, Flex, Text, rem } from "@mantine/core";
-// import { useDisclosure } from "@mantine/hooks";
+import { Button, Checkbox, Flex, Menu, Text, rem } from "@mantine/core";
 /* eslint-disable react-hooks/rules-of-hooks */
 import type { ColumnDef } from "@tanstack/react-table";
-// import { MoreHorizontal } from "lucide-react";
-// import { useState } from "react";
-// import toast from "react-hot-toast";
-// import { SelectRepositoryModal } from "./SelectRepositoryModal";
+import { MoreHorizontal } from "lucide-react";
+import { useState } from "react";
+import { useDisclosure } from "@mantine/hooks";
+import { OrdersFullDetails } from "@/screens/Orders/components/OrdersFullDetails";
+import { OrderTimelineModal } from "@/screens/Orders/components/OrderTimelineModal";
+import { useOrdersStore } from "@/store/returnsStors";
 
 export const columns: ColumnDef<Order>[] = [
+  {
+    id: "select",
+    header: ({ table }) => {
+      const { deleteAllOrders, setAllOrders, isOrderExist } = useOrdersStore();
+
+      return (
+        <Checkbox
+          checked={
+            table.getRowModel().rows.length > 0 &&
+            table
+              .getRowModel()
+              .rows.every((row) => isOrderExist(row.original.id.toString()))
+          }
+          onChange={(event) => {
+            const allTableRowsIds = table.getRowModel().rows.map((row) => ({
+              id: row.original.id.toString(),
+              name: row.original.recipientName,
+            }));
+
+            const isAllSelected = event.currentTarget.checked;
+
+            if (isAllSelected) {
+              setAllOrders(allTableRowsIds);
+              table.toggleAllPageRowsSelected(true);
+            } else {
+              table.toggleAllPageRowsSelected(false);
+              deleteAllOrders();
+            }
+          }}
+        />
+      );
+    },
+    cell: ({ row }) => {
+      const { addOrder, deleteOrder, isOrderExist } = useOrdersStore();
+      return (
+        <div className="flex items-center gap-4">
+          <Checkbox
+            checked={isOrderExist(row.original.id.toString())}
+            onChange={(value) => {
+              const isChecked = value.currentTarget.checked;
+              const { id, recipientName } = row.original;
+              if (isChecked) {
+                addOrder({ id: id.toString(), name: recipientName });
+                row.toggleSelected(true);
+              } else {
+                row.toggleSelected(false);
+                deleteOrder(id.toString());
+              }
+            }}
+          />
+          <OrdersFullDetails order={row.original} />
+        </div>
+      );
+    },
+  },
   {
     accessorKey: "",
     header: "#",
@@ -29,16 +83,14 @@ export const columns: ColumnDef<Order>[] = [
     header: "رقم الوصل",
   },
   {
-    accessorKey: "recipientPhone",
+    accessorKey: "recipientPhones",
     header: "رقم الهاتف",
     cell: ({ row }) => {
       const { recipientPhones } = row.original;
-      return recipientPhones.length > 1 ? (
+
+      return recipientPhones.length > 0 ? (
         <Flex gap="xs">
           <Text size="sm">{recipientPhones[0]}</Text>
-          <Badge color="blue" variant="light">
-            {recipientPhones.length - 1}
-          </Badge>
         </Flex>
       ) : (
         <Text size="sm">لا يوجد</Text>
@@ -46,29 +98,58 @@ export const columns: ColumnDef<Order>[] = [
     },
   },
   {
-    accessorKey: "deliveryAgent.name",
-    header: "المندوب",
+    accessorKey: "client.name",
+    header: "العميل",
     cell: ({ row }) => {
-      const { deliveryAgent } = row.original;
-      if (!deliveryAgent) return <Text size="sm">--</Text>;
-      return <Text size="sm">{deliveryAgent?.name || "--"}</Text>;
+      const { client, store } = row.original;
+      return (
+        <Text
+          truncate
+          maw={rem(100)}
+          size="sm"
+          style={{
+            width: "150px",
+            overflow: "visible",
+            maxWidth: "unset",
+            whiteSpace: "wrap",
+            fontSize: "12px",
+            fontWeight: "bold",
+          }}>
+          {client.name + " | " + store.name}
+        </Text>
+      );
     },
   },
   {
-    accessorKey: "client.name",
-    header: "العميل",
-  },
-  {
-    accessorKey: "store.name",
-    header: "المتجر",
-  },
-  {
-    header: "العنوان",
+    accessorKey: "client.company",
+    header: "شركه العميل",
     cell: ({ row }) => {
-      const { recipientAddress, governorate } = row.original;
+      const { client } = row.original;
+      return (
+        <Text
+          truncate
+          maw={rem(100)}
+          size="sm"
+          style={{
+            width: "150px",
+            overflow: "visible",
+            maxWidth: "unset",
+            whiteSpace: "wrap",
+            fontSize: "12px",
+            fontWeight: "bold",
+          }}>
+          {client.company + " | " + client.branch}
+        </Text>
+      );
+    },
+  },
+  {
+    header: "المحافظه",
+    cell: ({ row }) => {
+      const { governorate } = row.original;
       return (
         <Text truncate maw={rem(200)} size="sm">
-          {governorateArabicNames[governorate]} - {recipientAddress}
+          {governorateArabicNames[governorate]}
         </Text>
       );
     },
@@ -95,74 +176,39 @@ export const columns: ColumnDef<Order>[] = [
       }`;
     },
   },
-  // {
-  //     id: "actions",
-  //     cell: ({ row }) => {
-  //         const { id } = row.original;
-  //         const [changeStatusOpened, { open: openChangeStatus, close: closeChangeStatus }] =
-  //             useDisclosure(false);
-  //         const [isMenuOpen, setMenuOpen] = useState(false);
+  {
+    id: "actions",
+    cell: ({ row }) => {
+      const { id } = row.original;
 
-  //         const { mutate: changeStatus, isLoading } = useChangeOrderStatus();
+      const [timelineOpened, { open: openTimeline, close: closeTimeline }] =
+        useDisclosure(false);
+      const [isMenuOpen, setMenuOpen] = useState(false);
 
-  //         const handleChangeStatus = (status: keyof typeof orderStatusArabicNames) => {
-  //             changeStatus(
-  //                 {
-  //                     id,
-  //                     data: {
-  //                         status,
-  //                         secondaryStatus: status === "RETURNED" ? "WITH_AGENT" : undefined
-  //                     }
-  //                 },
-  //                 {
-  //                     onSuccess: () => {
-  //                         toast.success("تم تعديل حالة الطلب بنجاح");
-  //                     }
-  //                 }
-  //             );
-  //         };
-
-  //         return (
-  //             <Menu
-  //                 position="bottom-end"
-  //                 zIndex={150}
-  //                 opened={isMenuOpen}
-  //                 onChange={() => {
-  //                     if (changeStatusOpened) return;
-  //                     setMenuOpen(!isMenuOpen);
-  //                 }}
-  //             >
-  //                 <Menu.Target>
-  //                     <Button variant="ghost" className="h-8 w-8 p-0">
-  //                         <MoreHorizontal className="h-4 w-4" />
-  //                     </Button>
-  //                 </Menu.Target>
-  //                 <Menu.Dropdown>
-  //                     <Menu.Item
-  //                         disabled={isLoading}
-  //                         onClick={() => {
-  //                             handleChangeStatus("RESEND");
-  //                         }}
-  //                     >
-  //                         اعادة ارسال الطلب
-  //                     </Menu.Item>
-  //                     <Menu.Item
-  //                         disabled={isLoading}
-  //                         onClick={() => {
-  //                             handleChangeStatus("RETURNED");
-  //                         }}
-  //                     >
-  //                         ارجاع الطلب الي المندوب
-  //                     </Menu.Item>
-  //                     <SelectRepositoryModal
-  //                         close={closeChangeStatus}
-  //                         id={id}
-  //                         open={openChangeStatus}
-  //                         opened={changeStatusOpened}
-  //                     />
-  //                 </Menu.Dropdown>
-  //             </Menu>
-  //         );
-  //     }
-  // }
+      return (
+        <Menu
+          zIndex={150}
+          opened={isMenuOpen}
+          onChange={() => {
+            if (timelineOpened) return;
+            setMenuOpen(!isMenuOpen);
+          }}>
+          <Menu.Target>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <OrderTimelineModal
+              closeMenu={() => setMenuOpen(false)}
+              opened={timelineOpened}
+              close={closeTimeline}
+              open={openTimeline}
+              id={id}
+            />
+          </Menu.Dropdown>
+        </Menu>
+      );
+    },
+  },
 ];

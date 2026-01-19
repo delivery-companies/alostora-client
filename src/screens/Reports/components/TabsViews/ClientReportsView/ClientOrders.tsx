@@ -11,6 +11,7 @@ import { reportOrderStatuses } from "@/lib/reportOrderStatuses";
 import { reportStatusArray } from "@/lib/reportStatusArabicNames";
 import type { ReportsFilters } from "@/services/getReports";
 import { useClients } from "@/hooks/useClients";
+import { useStores } from "@/hooks/useStores";
 
 interface IReportsFilter {
   ordersFilters: OrdersFilter;
@@ -77,6 +78,12 @@ export const ClientOrdersFilter = ({
     });
   };
 
+  const {
+    data: storesData = {
+      data: [],
+    },
+  } = useStores({ size: 100000, minified: true });
+
   return (
     <Paper className="p-4" withBorder>
       <Grid className="mb-5" grow>
@@ -118,6 +125,28 @@ export const ClientOrdersFilter = ({
             placeholder="اختر مندوب الاستلام"
             limit={100}
             data={getSelectOptions(employees.data)}
+          />
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, md: 6, lg: 3, sm: 12, xs: 12 }}>
+          <Select
+            value={reportsFilters.store_id || null}
+            allowDeselect
+            label="المتجر"
+            searchable
+            clearable
+            onChange={(e) => {
+              setReportsFilters({
+                ...reportsFilters,
+                store_id: e || "",
+              });
+              setOrdersFilters({
+                ...ordersFilters,
+                store_id: e || "",
+              });
+            }}
+            placeholder="اختر المتجر"
+            data={getSelectOptions(storesData.data)}
+            limit={100}
           />
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4, lg: 4, sm: 12, xs: 12 }}>

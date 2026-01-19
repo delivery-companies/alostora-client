@@ -1,18 +1,26 @@
 import { AppLayout } from "@/components/AppLayout";
-import type { OrdersFilter } from "@/services/getOrders";
-import { Button, LoadingOverlay, TextInput, Grid, Select } from "@mantine/core";
+import type { Order, OrdersFilter } from "@/services/getOrders";
+import { Button, TextInput, Grid, Select, LoadingOverlay } from "@mantine/core";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { columns } from "./columns";
 import { useTenants } from "@/hooks/useTenants";
 import { getSelectOptions } from "@/lib/getSelectOptions";
-import { useSaveOrder } from "@/hooks/useSaveOrder";
-import { getCustomerOrders } from "@/services/customerOutputs";
+import { getCustomerOrders, saveOrder } from "@/services/customerOutputs";
 import { OrdersTable } from "../Orders/components/OrdersTable";
 import { useGetCustomerOutputs } from "@/hooks/useGetCustomerOutputs";
 import { useRepositories } from "@/hooks/useRepositories";
 import { useStores } from "@/hooks/useStores";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useOrdersStore } from "@/store/returnsStors";
+import { useDisclosure } from "@mantine/hooks";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/main";
+import { AxiosError } from "axios";
+import { APIError } from "@/models";
+import { ConfirmOrderNumber } from "@/components/SelectFromMultiOrders/SelectFromMultiOrders";
+import errorSound from "@/assets/error.mp3";
+import successSound from "@/assets/success.mp3";
 
 export const CustomerReturns = () => {
   const [orders, setOrders] = useState([]);
@@ -26,10 +34,27 @@ export const CustomerReturns = () => {
   const [repository, setRepository] = useState("");
   const [store, setStore] = useState("");
   const [target, setTarget] = useState("");
-  const { mutateAsync: saveOrder, isLoading: isLoading } = useSaveOrder();
+  const [isLoading, setIsLoading] = useState(false);
+  // const { mutateAsync: saveOrder, isLoading: isLoading } = useSaveOrder();
   const [selectedAgent, setSelectAgent] = useState("");
 
+  const [confirmOpened, { open: openConfirm, close: closeConfirm }] =
+    useDisclosure(false);
+  const [multiOrders, setMultiOrders] = useState<Order[]>([]);
+
+  const { orders: selectedOrders, deleteAllOrders } = useOrdersStore();
+
+  useEffect(() => {
+    deleteAllOrders();
+  }, []);
+
+  const playSound = (path: string) => {
+    const audio = new Audio(path);
+    audio.play().catch(() => {}); // prevent console error if autoplay blocked
+  };
+
   const fetchOrders = async () => {
+    setIsLoading(true);
     const respose = await getCustomerOrders({
       repository: +repository,
       storeId: +store,
@@ -38,9 +63,72 @@ export const CustomerReturns = () => {
       page: filters.page || 1,
       size: filters.size || 10,
     });
+    setIsLoading(false);
     setOrders(respose.data.orders);
     setfilters((prev) => ({ ...prev, pagesCount: respose.data.pageCount }));
   };
+
+  const { mutate: sendOrder, isLoading: isPending } = useMutation({
+    mutationFn: (data: {
+      storeId: number;
+      orderId: string;
+      companyId: number;
+      type: string;
+      repository: number;
+    }) => {
+      return saveOrder(data);
+    },
+    onSuccess: (res) => {
+      if (res.multi) {
+        openConfirm();
+        setMultiOrders(res.data || []);
+      } else {
+        queryClient.invalidateQueries({
+          queryKey: ["customerOutputs"],
+        });
+        toast.success("تم إضافة الطلب بنجاح", {
+          style: {
+            fontSize: "25px",
+            padding: "25px 30px",
+            textAlign: "center",
+            background: "#10B981",
+            color: "#fff",
+            borderRadius: "12px",
+          },
+          iconTheme: {
+            primary: "#fff",
+            secondary: "#10B981",
+          },
+          position: "top-center",
+          duration: 3000,
+        });
+        playSound(successSound);
+        setReceiptNumber("");
+        closeConfirm();
+        fetchOrders();
+      }
+    },
+    onError: (error: AxiosError<APIError>) => {
+      toast.error(error.response?.data.message || "حدث خطأ ما", {
+        style: {
+          fontSize: "25px",
+          padding: "25px 30px",
+          background: "#EF4444",
+          color: "#fff",
+          borderRadius: "12px",
+        },
+        iconTheme: {
+          primary: "#fff",
+          secondary: "#EF4444",
+        },
+        position: "top-center",
+        duration: 3000,
+      });
+      playSound(errorSound);
+      setReceiptNumber("");
+      closeConfirm();
+    },
+  });
 
   useEffect(() => {
     if (store || company || repository) {
@@ -73,14 +161,13 @@ export const CustomerReturns = () => {
   });
 
   const confirm = async (orderId: string) => {
-    await saveOrder({
+    sendOrder({
       storeId: +store,
       orderId: orderId,
       companyId: +company,
       type: target,
       repository: +repository,
     });
-    await fetchOrders();
     setReceiptNumber("");
   };
 
@@ -135,6 +222,10 @@ export const CustomerReturns = () => {
           repositoryName:
             repositories.data.find((e) => e.id === +repository)?.name || "",
           receivingAgentId: selectedAgent ? +selectedAgent : undefined,
+          orderIds:
+            selectedOrders.length > 0
+              ? selectedOrders.map((o) => o.id)
+              : undefined,
         }),
         {
           loading: "جاري تحميل الكشف...",
@@ -144,6 +235,7 @@ export const CustomerReturns = () => {
       )
       .then(() => {
         setOrders([]);
+        deleteAllOrders();
         setCompany("");
         setRepository("");
         setTarget("");
@@ -270,9 +362,9 @@ export const CustomerReturns = () => {
         ) : null}
         <Button
           className="mt-6"
-          disabled={isLoading}
+          disabled={isPending}
           onClick={handleChangeOrderStatus}
-          loading={isLoading}>
+          loading={isPending}>
           تأكيد
         </Button>
       </Grid>
@@ -287,6 +379,22 @@ export const CustomerReturns = () => {
           columns={columns}
         />
       </div>
+      <ConfirmOrderNumber
+        opened={confirmOpened}
+        close={closeConfirm}
+        open={openConfirm}
+        orders={multiOrders}
+        loading={isPending}
+        confirm={(id) => {
+          sendOrder({
+            storeId: +store,
+            orderId: id,
+            companyId: +company,
+            type: target,
+            repository: +repository,
+          });
+        }}
+      />
     </AppLayout>
   );
 };

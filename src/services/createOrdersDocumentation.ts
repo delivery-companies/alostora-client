@@ -103,3 +103,53 @@ export const createOrdersDocumentationService = async (
     }
   }
 };
+
+export const createRepositoryOrdersDocumentationService = async (
+  data: CreateOrdersDocumentationReportPDFPayload
+) => {
+  try {
+    const response = await api.post<
+      CreateOrdersDocumentationReportPDFPayload,
+      AxiosResponse<never>
+    >(
+      "/repository-orders/pdf",
+      {
+        type: data.type,
+        ordersIDs: data.ordersIDs,
+      },
+      {
+        responseType: "arraybuffer",
+        params:
+          data.type === "GENERAL"
+            ? {
+                client_id: data.params.client_id || undefined,
+                store_id: data.params.store_id || undefined,
+                governorate: data.params.governorate || undefined,
+                repository_id: data.params.repository_id || undefined,
+                to_repository_id: data.params.to_repository_id || undefined,
+                forwardedToGov: data.params.forwardedToGov || undefined,
+                forwarded: data.params.forwarded || undefined,
+                secondaryStatus: data.params.secondaryStatus,
+                status: data.params.status || undefined,
+                getIncoming: data.params.getIncoming || undefined,
+                getOutComing: data.params.getOutComing || undefined,
+                branchId: data.params.branch_id || undefined,
+              }
+            : data.params,
+      }
+    );
+
+    const contentType = response.headers["content-type"];
+
+    if (contentType === "application/pdf") {
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      FileSaver.saveAs(blob, "تقرير.pdf");
+      return;
+    }
+  } catch (error: unknown) {
+    if (error instanceof AxiosError) {
+      const data = JSON.parse(new TextDecoder().decode(error.response?.data));
+      throw data;
+    }
+  }
+};

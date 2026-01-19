@@ -78,13 +78,16 @@ export const AddClient = () => {
     formData.append("name", values.name);
     formData.append("phone", values.phone);
     formData.append("branchID", values.branch);
-    formData.append("role", values.type);
+    formData.append("role", "CLIENT");
     formData.append("password", values.password);
     formData.append("showNumbers", String(values.showNumbers ?? false));
     formData.append(
       "showDeliveryNumber",
       String(values.showDeliveryNumber ?? false)
     );
+    if (values.type === "EXTERNAL") {
+      formData.append("isExternal", "true");
+    }
     formData.append("username", values.phone);
     formData.append("avatar", values?.avatar[0] || "");
 
@@ -152,6 +155,17 @@ export const AddClient = () => {
               placeholder="اختار النوع"
               data={clientTypeArray}
               {...form.getInputProps("type")}
+              onChange={(value) => {
+                if (!value) {
+                  return;
+                }
+                form.setValues({
+                  type: value,
+                  password: value === "EXTERNAL" ? "djfjfjjfnnndkki" : "",
+                  confirmPassword:
+                    value === "EXTERNAL" ? "djfjfjjfnnndkki" : "",
+                });
+              }}
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 6, lg: 6, sm: 12, xs: 12 }}>
@@ -182,6 +196,7 @@ export const AddClient = () => {
               placeholder="اختار النوع"
               defaultChecked={false}
               {...form.getInputProps("showNumbers")}
+              disabled={form.getValues().type === "EXTERNAL"}
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 6, lg: 6, sm: 12, xs: 12 }}>
@@ -190,6 +205,7 @@ export const AddClient = () => {
               placeholder="اختار النوع"
               defaultChecked={false}
               {...form.getInputProps("showDeliveryNumber")}
+              disabled={form.getValues().type === "EXTERNAL"}
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 12, lg: 12, sm: 12, xs: 12 }}>
@@ -215,6 +231,7 @@ export const AddClient = () => {
               size="md"
               className="w-full"
               {...form.getInputProps("password")}
+              disabled={form.getValues().type === "EXTERNAL"}
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 6, lg: 6, sm: 12, xs: 12 }}>
@@ -225,6 +242,7 @@ export const AddClient = () => {
               size="md"
               className="w-full"
               {...form.getInputProps("confirmPassword")}
+              disabled={form.getValues().type === "EXTERNAL"}
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 6, lg: 6, sm: 12, xs: 12 }}>
@@ -234,8 +252,7 @@ export const AddClient = () => {
               type="submit"
               fullWidth
               mt="xl"
-              size="md"
-            >
+              size="md">
               اضافة
             </Button>
           </Grid.Col>
@@ -249,8 +266,7 @@ export const AddClient = () => {
               onClick={() => {
                 form.reset();
                 navigate("/clients");
-              }}
-            >
+              }}>
               الغاء
             </Button>
           </Grid.Col>

@@ -64,7 +64,9 @@ export const EditClient = () => {
         branch: clientDetails.data.branch?.id.toString(),
         showNumbers: clientDetails.data.showNumbers,
         showDeliveryNumber: clientDetails.data.showDeliveryNumber,
-        type: clientDetails.data.role,
+        type: clientDetails.data.isExternal
+          ? "EXTERNAL"
+          : clientDetails.data.role,
         companyID: clientDetails.data.company?.id.toString(),
         avatar: [avatarAddress] as unknown as FileWithPath[],
       });
@@ -95,14 +97,22 @@ export const EditClient = () => {
     formData.append("username", values.phone);
     formData.append("branchID", values.branch);
     formData.append("showNumbers", String(values.showNumbers ?? false));
+
     formData.append(
       "showDeliveryNumber",
       String(values.showDeliveryNumber ?? false)
     );
-    formData.append("accountType", values.type);
+    // formData.append("accountType", values.type);
+    if (values.type === "EXTERNAL") {
+      formData.append("isExternal", "true");
+    } else {
+      formData.append("isExternal", "false");
+    }
+
     if (values.password) {
       formData.append("password", values.password);
     }
+
     formData.append("avatar", values?.avatar[0] || "");
     formData.append("token", "");
     formData.append("companyID", values.companyID);
@@ -167,6 +177,7 @@ export const EditClient = () => {
               placeholder="اختار النوع"
               defaultChecked={clientDetails?.data.showNumbers}
               {...form.getInputProps("showNumbers")}
+              disabled={form.getValues().type === "EXTERNAL"}
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 6, lg: 6, sm: 12, xs: 12 }}>
@@ -175,6 +186,7 @@ export const EditClient = () => {
               placeholder="اختار النوع"
               defaultChecked={clientDetails?.data.showDeliveryNumber}
               {...form.getInputProps("showDeliveryNumber")}
+              disabled={form.getValues().type === "EXTERNAL"}
             />
           </Grid.Col>
           {/* {isAdminOrAdminAssistant && (
@@ -212,6 +224,7 @@ export const EditClient = () => {
               size="md"
               className="w-full"
               {...form.getInputProps("password")}
+              disabled={form.getValues().type === "EXTERNAL"}
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 6, lg: 6, sm: 12, xs: 12 }}>
@@ -221,6 +234,7 @@ export const EditClient = () => {
               mt="md"
               size="md"
               className="w-full"
+              disabled={form.getValues().type === "EXTERNAL"}
               {...form.getInputProps("confirmPassword")}
             />
           </Grid.Col>
@@ -232,8 +246,7 @@ export const EditClient = () => {
               type="submit"
               fullWidth
               mt="xl"
-              size="md"
-            >
+              size="md">
               تعديل
             </Button>
           </Grid.Col>
@@ -247,8 +260,7 @@ export const EditClient = () => {
               onClick={() => {
                 form.reset();
                 navigate("/clients");
-              }}
-            >
+              }}>
               الغاء
             </Button>
           </Grid.Col>

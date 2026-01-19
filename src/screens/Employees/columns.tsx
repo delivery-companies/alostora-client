@@ -47,9 +47,11 @@ export const columns: ColumnDef<Employee>[] = [
   {
     accessorKey: "role",
     header: "الوظيفة",
-    accessorFn: ({ role, emergency }) => {
+    accessorFn: ({ role, emergency, mainEmergency }) => {
       if (emergency) {
         return rolesArabicNames["EMERGENCY_EMPLOYEE"];
+      } else if (mainEmergency) {
+        return "موظف متابعه رئيسي";
       }
       return rolesArabicNames[role];
     },

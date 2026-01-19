@@ -491,7 +491,15 @@ export const AddEmployee = () => {
                     setSelectedLocations(e);
                   }}
                   placeholder="اختر المنطقة"
-                  data={getSelectOptions(locationsData?.data || [])}
+                  data={
+                    selectedBranches.length > 0
+                      ? getSelectOptions(
+                          locationsData?.data.filter((s) =>
+                            selectedBranches.includes(s.branchId + "")
+                          ) || []
+                        )
+                      : getSelectOptions(locationsData?.data || [])
+                  }
                   limit={100}
                 />
               </Grid.Col>
@@ -519,7 +527,15 @@ export const AddEmployee = () => {
                     setSelectedStores(e);
                   }}
                   placeholder="اختر المتجر"
-                  data={getSelectOptions(storesData?.data || [])}
+                  data={
+                    selectedBranches.length > 0
+                      ? getSelectOptions(
+                          storesData?.data.filter((s) =>
+                            selectedBranches.includes(s.client.branchId + "")
+                          ) || []
+                        )
+                      : getSelectOptions(storesData?.data || [])
+                  }
                   limit={100}
                 />
               </Grid.Col>
@@ -547,7 +563,15 @@ export const AddEmployee = () => {
                     setSelectedEmployees(e);
                   }}
                   placeholder="اختر مندوب"
-                  data={getSelectOptions(employeesData.data)}
+                  data={
+                    selectedBranches.length > 0
+                      ? getSelectOptions(
+                          employeesData?.data.filter((s) =>
+                            selectedBranches.includes(s.branchId + "")
+                          ) || []
+                        )
+                      : getSelectOptions(employeesData?.data || [])
+                  }
                   limit={100}
                 />
               </Grid.Col>

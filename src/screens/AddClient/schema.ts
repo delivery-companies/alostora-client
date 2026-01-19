@@ -16,6 +16,7 @@ export const addClientSchema = z
       .string()
       .min(6, { message: "كلمة المرور يجب ان تكون 6 احرف" }),
     showNumbers: z.boolean().optional(),
+    isExternal: z.boolean().optional(),
     showDeliveryNumber: z.boolean().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {

@@ -31,6 +31,7 @@ import { DeleteOrder } from "./components/DeleteOrder";
 import { OrderTimelineModal } from "./components/OrderTimelineModal";
 import { OrdersFullDetails } from "./components/OrdersFullDetails";
 import { CreateTicket } from "./components/Createticket";
+import { useAuth } from "@/store/authStore";
 
 export const columns: ColumnDef<Order>[] = [
   {
@@ -112,14 +113,21 @@ export const columns: ColumnDef<Order>[] = [
   {
     accessorKey: "receiptNumber",
     header: "رقم الوصل ",
-    cell: ({ row }) => (
-      <EditableTableCell
-        typeOfValue="string"
-        id={row.original.id}
-        type="receiptNumber"
-        value={row.original.receiptNumber}
-      />
-    ),
+    cell: ({ row }) => {
+      const { role } = useAuth();
+
+      if (role === "CLIENT" || role === "CLIENT_ASSISTANT") {
+        return row.original.receiptNumber;
+      }
+      return (
+        <EditableTableCell
+          typeOfValue="string"
+          id={row.original.id}
+          type="receiptNumber"
+          value={row.original.receiptNumber}
+        />
+      );
+    },
   },
   {
     accessorKey: "client.name",
@@ -225,10 +233,13 @@ export const columns: ColumnDef<Order>[] = [
     accessorKey: "totalCost",
     header: "المبلغ",
     cell: ({ row }) => {
+      const { role } = useAuth();
       const formattedNumber = row.original.totalCost
         .toString()
         .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-
+      if (role === "CLIENT" || role === "CLIENT_ASSISTANT") {
+        return formattedNumber;
+      }
       return (
         <EditableTableCell
           id={row.original.id}
@@ -243,10 +254,15 @@ export const columns: ColumnDef<Order>[] = [
     accessorKey: "paidAmount",
     header: "المبلغ المدفوع",
     cell: ({ row }) => {
+      const { role } = useAuth();
+
       const formattedNumber = row.original.paidAmount
         .toString()
         .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
+      if (role === "CLIENT" || role === "CLIENT_ASSISTANT") {
+        return formattedNumber;
+      }
       return (
         <EditableTableCell
           id={row.original.id}
@@ -257,18 +273,6 @@ export const columns: ColumnDef<Order>[] = [
       );
     },
   },
-
-  // {
-  //     header: "معالج",
-  //     cell: ({ row }) => {
-  //         const { processed, processedBy } = row.original;
-  //         return (
-  //             <Text w={rem(100)} truncate size="sm" c={processed ? "teal" : undefined}>
-  //                 {processed ? `معالج- ${processedBy?.name || "غير محدد"}` : "غير معالج"}
-  //             </Text>
-  //         );
-  //     }
-  // },
   {
     accessorKey: "deliveryCost",
     header: "تكلفة التوصيل",
@@ -305,6 +309,7 @@ export const columns: ColumnDef<Order>[] = [
       if (clientReport?.length === 0) {
         return "لا يوجد";
       }
+
       return (
         <div style={{ display: "flex", gap: "5px" }}>
           {clientReport?.map((r) => {
@@ -326,6 +331,12 @@ export const columns: ColumnDef<Order>[] = [
                     <ActionIcon
                       variant="filled"
                       onClick={() => {
+                        console.log(r);
+
+                        if (r.url) {
+                          window.open(r.url, "_blank");
+                          return;
+                        }
                         handleDownload(r.id);
                       }}>
                       <IconFileTypePdf />
@@ -347,21 +358,6 @@ export const columns: ColumnDef<Order>[] = [
           })}
         </div>
       );
-      // if (!clientReport) return "لا يوجد";
-      // return clientReport.deleted ? (
-      //   <Text size="sm">تم حذف الكشف</Text>
-      // ) : (
-      //   <HoverCard width={rem(120)} shadow="md">
-      //     <HoverCard.Target>
-      //       <ActionIcon variant="filled" onClick={handleDownload}>
-      //         <IconFileTypePdf />
-      //       </ActionIcon>
-      //     </HoverCard.Target>
-      //     <HoverCard.Dropdown>
-      //       <Text size="sm">تحميل الكشف</Text>
-      //     </HoverCard.Dropdown>
-      //   </HoverCard>
-      // );
     },
   },
   {
@@ -403,6 +399,10 @@ export const columns: ColumnDef<Order>[] = [
                     <ActionIcon
                       variant="filled"
                       onClick={() => {
+                        if (r.url) {
+                          window.open(r.url, "_blank");
+                          return;
+                        }
                         handleDownload(r.id);
                       }}>
                       <IconFileTypePdf />
@@ -433,7 +433,22 @@ export const columns: ColumnDef<Order>[] = [
       const { deliveryAgentReport } = row.original;
       const { mutateAsync: getReportPDF } = useReportsPDF("كشف مندوب");
 
-      const handleDownload = () => {
+      // const handleDownload = () => {
+      //   if (!deliveryAgentReport) return;
+      //   toast.promise(getReportPDF(deliveryAgentReport.id), {
+      //     loading: "جاري تحميل الكشف...",
+      //     success: "تم تحميل الكشف بنجاح",
+      //     error: (error) => error.message || "حدث خطأ ما",
+      //   });
+      // };
+
+      const handleClick = () => {
+        // ✅ Already generated → open in new tab
+        if (deliveryAgentReport.url) {
+          window.open(deliveryAgentReport.url, "_blank");
+          return;
+        }
+
         if (!deliveryAgentReport) return;
         toast.promise(getReportPDF(deliveryAgentReport.id), {
           loading: "جاري تحميل الكشف...",
@@ -443,12 +458,13 @@ export const columns: ColumnDef<Order>[] = [
       };
 
       if (!deliveryAgentReport) return "لا يوجد";
+
       return deliveryAgentReport.deleted ? (
         <Text size="sm">تم حذف الكشف</Text>
       ) : (
         <HoverCard width={rem(120)} shadow="md">
           <HoverCard.Target>
-            <ActionIcon variant="filled" onClick={handleDownload}>
+            <ActionIcon variant="filled" onClick={handleClick}>
               <IconFileTypePdf />
             </ActionIcon>
           </HoverCard.Target>

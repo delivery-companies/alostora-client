@@ -38,3 +38,13 @@ export const createClientsService = async (data: FormData) => {
   });
   return response.data;
 };
+
+export const generateApiKey = async (id: number) => {
+  const response = await api.post<
+    FormData,
+    AxiosResponse<{ status: string; apiKey: string }>
+  >("/clients/api-key", {
+    id: id,
+  });
+  return response.data;
+};

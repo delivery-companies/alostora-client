@@ -15,8 +15,12 @@ export interface Report {
   type: keyof typeof reportTypeArabicNames;
   createdAt: string;
   companyNet: number;
+  clientNet: number;
+  deliveryAgentNet: number;
+  branchNet: number;
   updatedAt: string;
   confirmed: boolean;
+  url: string | null;
   companyReport: {
     reportNumber: string;
     company: {
@@ -72,6 +76,7 @@ export interface Report {
   } | null;
 
   branchReport: {
+    type: string;
     reportNumber: string;
     branch: {
       id: number;

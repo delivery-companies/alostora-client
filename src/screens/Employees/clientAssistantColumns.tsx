@@ -49,6 +49,7 @@ export const clientAssistantColumns: ColumnDef<Employee>[] = [
     header: "المتاجر",
     cell: ({ row }) => {
       const { role, id, managedStores } = row.original;
+
       if (role === "CLIENT_ASSISTANT") {
         const stringifiedManagedStores = managedStores.map((store) =>
           store.id.toString()
@@ -78,8 +79,7 @@ export const clientAssistantColumns: ColumnDef<Employee>[] = [
           onChange={() => {
             if (deleteOpened) return;
             setMenuOpen(!isMenuOpen);
-          }}
-        >
+          }}>
           <Menu.Target>
             <Button variant="ghost" className="h-8 w-8 p-0">
               <MoreHorizontal className="h-4 w-4" />
@@ -91,8 +91,7 @@ export const clientAssistantColumns: ColumnDef<Employee>[] = [
                 variant: "ghost",
                 className: "w-full",
               })}
-              to={`/employees/${id}/show`}
-            >
+              to={`/employees/${id}/show`}>
               عرض
             </Link>
             <Link
@@ -100,8 +99,7 @@ export const clientAssistantColumns: ColumnDef<Employee>[] = [
                 variant: "ghost",
                 className: "w-full",
               })}
-              to={`/employees/${id}/edit`}
-            >
+              to={`/employees/${id}/edit`}>
               تعديل
             </Link>
             <DeleteEmployee

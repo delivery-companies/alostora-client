@@ -1,5 +1,5 @@
 import { AppLayout } from "@/components/AppLayout";
-import type { OrdersFilter } from "@/services/getOrders";
+import type { Order, OrdersFilter } from "@/services/getOrders";
 import { Button, LoadingOverlay, TextInput, Grid } from "@mantine/core";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -15,8 +15,16 @@ import { AxiosError } from "axios";
 import { APIError } from "@/models";
 import { useAuth } from "@/store/authStore";
 import { RepositoryEntriesFilters } from "./filters";
+import { useDisclosure } from "@mantine/hooks";
+import { ConfirmOrderNumber } from "@/components/SelectFromMultiOrders/SelectFromMultiOrders";
+import errorSound from "@/assets/error.mp3";
+import successSound from "@/assets/success.mp3";
 
 export const RepositoryOrders = () => {
+  const [confirmOpened, { open: openConfirm, close: closeConfirm }] =
+    useDisclosure(false);
+  const [multiOrders, setMultiOrders] = useState<Order[]>([]);
+
   const [filters, setfilters] = useState<OrdersFilter>({
     page: 1,
     size: 10,
@@ -31,9 +39,6 @@ export const RepositoryOrders = () => {
 
   const [receiptNumber, setReceiptNumber] = useState("");
   const { mainRepository } = useAuth();
-  // const [isTyping, setIsTyping] = useState(false);
-  // const typingTimer = useRef<NodeJS.Timeout | null>(null); // Explicitly type the timer
-  // const TYPING_DELAY = 500; // Time in milliseconds to detect manual typing
 
   const {
     data: orders = {
@@ -45,48 +50,96 @@ export const RepositoryOrders = () => {
     isLoading,
   } = useRepositoryOrders(filters);
 
+  const playSound = (path: string) => {
+    const audio = new Audio(path);
+    audio.play().catch(() => {}); // prevent console error if autoplay blocked
+  };
+
   const { mutate: editOrder, isLoading: saveLoading } = useMutation({
-    mutationFn: (data: EditOrderPayload) => {
+    mutationFn: (data: { data: EditOrderPayload; id: string }) => {
       return saveOrderInRepositoryService({
-        id: receiptNumber,
-        data,
+        id: data.id,
+        data: data.data,
       });
     },
-    onSuccess: () => {
-      toast.success("تم تعديل الطلب بنجاح");
-      setReceiptNumber("");
-      // navigate("/orders");
-      // form.reset();
-      queryClient.invalidateQueries({
-        queryKey: ["orders"],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["timeline"],
-      });
+    onSuccess: (res) => {
+      if (res.multi) {
+        openConfirm();
+        setMultiOrders(res.data || []);
+      } else {
+        toast.success("تم إضافة الطلب بنجاح", {
+          style: {
+            fontSize: "25px",
+            padding: "25px 30px",
+            textAlign: "center",
+            background: "#10B981",
+            color: "#fff",
+            borderRadius: "12px",
+          },
+          iconTheme: {
+            primary: "#fff",
+            secondary: "#10B981",
+          },
+          position: "top-center",
+          duration: 3000,
+        });
+        setReceiptNumber("");
+        queryClient.invalidateQueries({
+          queryKey: ["orders"],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["timeline"],
+        });
+        closeConfirm();
+        playSound(successSound);
+      }
     },
     onError: (error: AxiosError<APIError>) => {
-      toast.error(error.response?.data.message || "حدث خطأ ما");
+      toast.error(error.response?.data.message || "حدث خطأ ما", {
+        style: {
+          fontSize: "25px",
+          padding: "25px 30px",
+          background: "#EF4444",
+          color: "#fff",
+          borderRadius: "12px",
+        },
+        iconTheme: {
+          primary: "#fff",
+          secondary: "#EF4444",
+        },
+        position: "top-center",
+        duration: 3000,
+      });
       setReceiptNumber("");
+      playSound(errorSound);
+
+      closeConfirm();
     },
   });
 
-  const confirm = async () => {
+  const confirm = async (id: string) => {
     if (mainRepository) {
       editOrder({
-        secondaryStatus: "IN_REPOSITORY",
-        status: "IN_MAIN_REPOSITORY",
+        data: {
+          secondaryStatus: "IN_REPOSITORY",
+          status: "IN_MAIN_REPOSITORY",
+        },
+        id: id,
       });
     } else {
       editOrder({
-        secondaryStatus: "IN_REPOSITORY",
-        status: "IN_GOV_REPOSITORY",
+        data: {
+          secondaryStatus: "IN_REPOSITORY",
+          status: "IN_GOV_REPOSITORY",
+        },
+        id: id,
       });
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      confirm();
+      confirm(receiptNumber);
       // setReceiptNumber(""); // Clear input after saving
     }
   };
@@ -111,7 +164,7 @@ export const RepositoryOrders = () => {
         <Button
           className="mt-6"
           disabled={saveLoading || receiptNumber === ""}
-          onClick={confirm}
+          onClick={() => confirm(receiptNumber)}
           loading={saveLoading}>
           تأكيد
         </Button>
@@ -129,6 +182,32 @@ export const RepositoryOrders = () => {
           columns={columns}
         />
       </div>
+      <ConfirmOrderNumber
+        opened={confirmOpened}
+        close={closeConfirm}
+        open={openConfirm}
+        orders={multiOrders}
+        loading={saveLoading}
+        confirm={(id) => {
+          if (mainRepository) {
+            editOrder({
+              data: {
+                secondaryStatus: "IN_REPOSITORY",
+                status: "IN_MAIN_REPOSITORY",
+              },
+              id: id,
+            });
+          } else {
+            editOrder({
+              data: {
+                secondaryStatus: "IN_REPOSITORY",
+                status: "IN_GOV_REPOSITORY",
+              },
+              id: id,
+            });
+          }
+        }}
+      />
     </AppLayout>
   );
 };

@@ -27,6 +27,7 @@ interface DataTableProps<TData, TValue> {
   setFilters: Dispatch<React.SetStateAction<Filters>>;
   navigationURL?: string;
   navButtonTitle?: string;
+  showBk?: boolean;
   rowSelection?: any; // 👈 new
   setRowSelection?: (updater: any) => void; // 👈 new
 }
@@ -44,6 +45,7 @@ export function DataTable<TData, TValue>({
   navButtonTitle,
   rowSelection = {}, // default
   setRowSelection = () => {}, // default
+  showBk,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -95,7 +97,7 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   className={
-                    row.original
+                    row.original && !showBk
                       ? (row.original as secondaryType)?.clientReport
                           ?.secondaryType ||
                         (row.original as secondaryType)?.repositoryReport

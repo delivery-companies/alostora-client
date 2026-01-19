@@ -5,13 +5,14 @@ import { useAuth } from "@/store/authStore";
 import { LoadingOverlay } from "@mantine/core";
 import { useDebouncedState } from "@mantine/hooks";
 import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+// import toast from "react-hot-toast";
 import { useLocation } from "react-router-dom";
 import { columns } from "./columns";
 import { CustomOrdersFilter } from "./components/OrdersFilter";
 import { OrdersStatistics } from "./components/OrdersStatistics";
 import { OrdersTable } from "./components/OrdersTable";
 import { useOrdersStore } from "@/store/ordersStore";
+import { clientColumns } from "./clientColums";
 
 export const ordersFilterInitialState: OrdersFilter = {
   order_id: "",
@@ -114,7 +115,7 @@ export const OrdersScreen = () => {
     locationState?.automatic_update_id,
   ]);
 
-  const [receiptError, setReceiptError] = useState<string | null>(null);
+  // const [receiptError, setReceiptError] = useState<string | null>(null);
 
   const {
     data: orders = {
@@ -126,36 +127,10 @@ export const OrdersScreen = () => {
     },
     isError,
     isInitialLoading,
-    isFetching,
   } = useOrders({
     ...filters,
     search,
   });
-
-  useEffect(() => {
-    if (filters.receipt_numbers && filters.receipt_numbers.length > 0) {
-      if (
-        !isFetching &&
-        filters.receipt_numbers.length !== orders.data.orders.length
-      ) {
-        setReceiptError("لم يتم العثور على طلبات بهذا الرقم");
-        toast.error("لم يتم العثور على طلبات بهذا الرقم");
-        // Clear the receipt numbers after a short delay
-        setTimeout(() => {
-          filters.receipt_numbers?.pop();
-          setFilters((prev) => ({
-            ...prev,
-            receipt_numbers: filters.receipt_numbers,
-          }));
-          setReceiptError(null);
-        }, 3000);
-      } else {
-        setReceiptError(null);
-      }
-    } else {
-      setReceiptError(null);
-    }
-  }, [filters.receipt_numbers, isFetching, orders.data.orders]);
 
   return (
     <AppLayout isError={isError}>
@@ -173,7 +148,7 @@ export const OrdersScreen = () => {
         setFilters={setFilters}
         currentPageOrdersIDs={orders.data.orders.map((order) => order.id)}
         setSearch={setSearch}
-        receiptError={receiptError}
+        // receiptError={receiptError}
       />
       <div className="relative mt-12">
         <LoadingOverlay visible={isInitialLoading} />
@@ -189,7 +164,11 @@ export const OrdersScreen = () => {
               ? "/orders-bulk-create"
               : ""
           }
-          columns={columns}
+          columns={
+            role !== "CLIENT" && role !== "CLIENT_ASSISTANT"
+              ? columns
+              : clientColumns
+          }
           data={orders.data.orders}
           setFilters={setFilters}
           filters={{

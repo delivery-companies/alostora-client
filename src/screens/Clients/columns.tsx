@@ -11,6 +11,10 @@ import { MoreHorizontal } from "lucide-react";
 import { Link } from "react-router-dom";
 import { EditDeliveryCostsModal } from "./EditDeliveryCostsModal";
 import { DeleteClient } from "./delete-client";
+import { useGenerateApi } from "@/hooks/useCreateClient";
+import { Button as Button2 } from "@mantine/core";
+import { useState } from "react";
+import { ApiKeyModal } from "./ApiKeyModal";
 
 export const columns: ColumnDef<Client>[] = [
   {
@@ -102,7 +106,10 @@ export const columns: ColumnDef<Client>[] = [
   {
     id: "actions",
     cell: ({ row }) => {
-      const { id } = row.original;
+      const { id, isExternal } = row.original;
+      const [apiKey, setApiKey] = useState<string | null>(null);
+
+      const { mutate: generateKey, isLoading } = useGenerateApi(setApiKey);
       return (
         <DropdownMenu dir="rtl">
           <DropdownMenuTrigger asChild>
@@ -110,14 +117,14 @@ export const columns: ColumnDef<Client>[] = [
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent align="center">
             <Link
               className={buttonVariants({
                 variant: "ghost",
                 className: "w-full",
               })}
-              to={`/clients/${id}/show`}
-            >
+              to={`/clients/${id}/show`}>
               عرض
             </Link>
             <Link
@@ -125,11 +132,20 @@ export const columns: ColumnDef<Client>[] = [
                 variant: "ghost",
                 className: "w-full",
               })}
-              to={`/clients/${id}/edit`}
-            >
+              to={`/clients/${id}/edit`}>
               تعديل
             </Link>
             <DeleteClient clientId={id} />
+            <ApiKeyModal apiKey={apiKey} onClose={() => setApiKey(null)} />
+            {isExternal && (
+              <Button2
+                disabled={isLoading}
+                mt={5}
+                variant="filled"
+                onClick={() => generateKey(id)}>
+                توليد API Key
+              </Button2>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       );

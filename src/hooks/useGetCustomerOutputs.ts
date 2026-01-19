@@ -14,6 +14,7 @@ export const useGetCustomerOutputs = () => {
       repositoryId: number;
       repositoryName: string;
       receivingAgentId?: number;
+      orderIds?: string[];
     }) => {
       return saveAndCreateReport(data);
     },

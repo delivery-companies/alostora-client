@@ -14,6 +14,7 @@ export interface Client {
   role: keyof typeof clientTypeArabicNames;
   showNumbers: boolean;
   showDeliveryNumber: boolean;
+  isExternal: boolean;
   branch: Branch | null;
   createdBy: {
     id: number;

@@ -104,6 +104,7 @@ export const columns: ColumnDef<IReport>[] = [
         governorateReport,
         repositoryReport,
         type,
+        url,
       } = row.original;
 
       const reportNameMap: Record<IReport["type"], string> = {
@@ -123,7 +124,14 @@ export const columns: ColumnDef<IReport>[] = [
       // eslint-disable-next-line react-hooks/rules-of-hooks
       const { mutateAsync: getReportPDF } = useReportsPDF(pdfTitle);
 
-      const handleDownload = () => {
+      const handleClick = () => {
+        // ✅ Already generated → open in new tab
+        if (url) {
+          window.open(url, "_blank");
+          return;
+        }
+
+        // ❌ Not generated yet → generate & download
         toast.promise(getReportPDF(id), {
           loading: "جاري تحميل الكشف...",
           success: "تم تحميل الكشف بنجاح",
@@ -132,8 +140,12 @@ export const columns: ColumnDef<IReport>[] = [
       };
 
       return (
-        <ActionIcon variant="filled" onClick={handleDownload}>
-          <IconFileTypePdf />
+        <ActionIcon
+          variant="filled"
+          color={url ? "red" : "red"}
+          onClick={handleClick}
+          title={url ? "فتح الملف" : "إنشاء وتحميل الملف"}>
+          <IconFileTypePdf size={18} />
         </ActionIcon>
       );
     },

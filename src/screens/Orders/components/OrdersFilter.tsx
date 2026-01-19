@@ -50,13 +50,59 @@ import { ChangeOrdersBranch } from "./ChangeOrdersBranch";
 import { useState } from "react";
 // import { ProcessedSelectedOrders } from "./ProcessedSelectedOrders";
 
+const secondaryStatusFilter = [
+  { value: "WITH_AGENT", label: "مع المندوب" },
+  { value: "IN_REPOSITORY", label: "في مخزن الفرع" },
+  { value: "IN_CAR", label: "في المخزن الرئيسي" },
+  { value: "WITH_RECEIVING_AGENT", label: "مع مندوب الاستلام" },
+  { value: "WITH_CLIENT", label: "مع العميل" },
+];
+
+type NoteOption = {
+  value: string;
+  label: string;
+};
+
+const NOTES_OPTIONS: Record<string, NoteOption[]> = {
+  RETURNED: [
+    { value: "لا يرد بعد المعالجة", label: "لا يرد بعد المعالجة" },
+    { value: "رفض الطلب", label: "رفض الطلب" },
+    { value: "حظر المندوب", label: "حظر المندوب" },
+    { value: "تالف", label: "تالف" },
+    { value: "تم الوصول والرفض", label: "تم الوصول والرفض" },
+    { value: "خطأ بالعنوان", label: "خطأ بالعنوان" },
+    { value: "مستلم مسبقاً", label: "مستلم مسبقاً" },
+    { value: "خطأ بالتجهيز", label: "خطأ بالتجهيز" },
+    { value: "إلغاء الحجز", label: "إلغاء الحجز" },
+    { value: "لم يعالج الطلب", label: "لم يعالج الطلب" },
+    { value: "كاذب", label: "كاذب" },
+    { value: "مكرر", label: "مكرر" },
+  ],
+  POSTPONED: [
+    { label: "مؤجل غدا", value: "مؤجل غدا" },
+    { label: "مؤجل لأكثر من يوم", value: "مؤجل لأكثر من يوم" },
+    { label: "مؤجل ليلا", value: "مؤجل ليلا" },
+  ],
+  PROCESSING: [
+    { value: "لا يرد مع رسالة", label: "لا يرد مع رسالة" },
+    { value: "مغلق", label: "مغلق" },
+    { value: "نقص رقم", label: "نقص رقم" },
+    { value: "لا يمكن الاتصال به", label: "لا يمكن الاتصال به" },
+    { value: "زيادة رقم", label: "زيادة رقم" },
+    { value: "الرقم غير معرف", label: "الرقم غير معرف" },
+    { value: "غير داخل بالخدمة", label: "غير داخل بالخدمة" },
+    { value: "لم يطلب", label: "لم يطلب" },
+    { value: "تعديل سعر", label: "تعديل سعر" },
+  ],
+};
+
 interface OrdersFilter {
   filters: IOrdersFilter;
   setFilters: React.Dispatch<React.SetStateAction<IOrdersFilter>>;
   search: string;
   setSearch: (newValue: string) => void;
   currentPageOrdersIDs?: string[];
-  receiptError: string | null;
+  // receiptError: string | null;
 }
 
 export const CustomOrdersFilter = ({
@@ -64,8 +110,8 @@ export const CustomOrdersFilter = ({
   setFilters,
   setSearch,
   currentPageOrdersIDs,
-  receiptError,
-}: OrdersFilter) => {
+}: // receiptError,
+OrdersFilter) => {
   const { role, mainRepository } = useAuth();
   const [searchInput, setSearchInput] = useState<string>();
   const { orders: selectedOrders, deleteAllOrders } = useOrdersStore();
@@ -88,6 +134,7 @@ export const CustomOrdersFilter = ({
       data: [],
     },
   } = useLocations({ size: 100000, minified: true });
+
   const {
     data: employeesData = {
       data: [],
@@ -96,6 +143,15 @@ export const CustomOrdersFilter = ({
     size: 100000,
     minified: true,
     roles: ["DELIVERY_AGENT"],
+  });
+
+  const {
+    data: employees = {
+      data: [],
+    },
+  } = useEmployees({
+    size: 100000,
+    minified: true,
   });
 
   const {
@@ -115,7 +171,7 @@ export const CustomOrdersFilter = ({
       size: 100000,
       minified: true,
     },
-    role === "COMPANY_MANAGER"
+    role === "COMPANY_MANAGER",
   );
 
   const transformedAutomaticUpdates = automaticUpdatesData?.data.map(
@@ -124,7 +180,7 @@ export const CustomOrdersFilter = ({
       label: `${orderStatusArabicNames[update.orderStatus]} - ${
         update.notes ? update.notes + " - " : ""
       } ${update.branch.name}`,
-    })
+    }),
   );
 
   const convertDateFormat = (date: Date | null): string | null => {
@@ -148,13 +204,13 @@ export const CustomOrdersFilter = ({
           onSuccess: () => {
             deleteAllOrders();
           },
-        }
+        },
       ),
       {
         loading: "جاري تحميل تقرير...",
         success: "تم تحميل تقرير بنجاح",
         error: (error) => error.message || "حدث خطأ ما",
-      }
+      },
     );
   };
 
@@ -170,7 +226,7 @@ export const CustomOrdersFilter = ({
         loading: "جاري تحميل تقرير...",
         success: "تم تحميل تقرير بنجاح",
         error: (error) => error.message || "حدث خطأ ما",
-      }
+      },
     );
   };
 
@@ -182,12 +238,23 @@ export const CustomOrdersFilter = ({
         params: filters || {},
       }),
       {
-        loading: "جاري تحميل تقرير بكل المنتجات",
-        success: "تم تحميل تقرير بكل المنتجات بنجاح",
+        loading: "جاري تحميل تقرير بكل الطلبات",
+        success: "تم تحميل تقرير بكل الطلبات بنجاح",
         error: (error) => error.message || "حدث خطأ ما",
-      }
+      },
     );
   };
+
+  const notesOptions: NoteOption[] = filters.statuses?.length
+    ? Array.from(
+        new Map(
+          filters.statuses
+            .filter((status) => status in NOTES_OPTIONS)
+            .flatMap((status) => NOTES_OPTIONS[status])
+            .map((item) => [item.value, item]),
+        ).values(),
+      )
+    : [];
 
   return (
     <>
@@ -226,14 +293,8 @@ export const CustomOrdersFilter = ({
                 <ChangeOrdersDelivery />
                 <ChangeOrdersStatus />
                 {/* <ForwardOrdersToCompany /> */}
-              </>
+              </>,
             )}
-            {/* {(role === "EMERGENCY_EMPLOYEE" || role === "INQUIRY_EMPLOYEE") && (
-                            <>
-                                <ProcessedSelectedOrders proceedValue />
-                                <ProcessedSelectedOrders proceedValue={false} />
-                            </>
-                        )} */}
             {role === "COMPANY_MANAGER" && <DeleteAllSelectedOrdersModal />}
           </div>
         </Grid.Col>
@@ -262,7 +323,7 @@ export const CustomOrdersFilter = ({
                       receipt_numbers: onlyNumbers,
                     }));
                   }}
-                  error={receiptError}
+                  // error={receiptError}
                 />
               </Grid.Col>
               <Grid.Col span={{ base: 12, md: 6, lg: 3, sm: 12, xs: 12 }}>
@@ -317,6 +378,25 @@ export const CustomOrdersFilter = ({
                   data={orderStatusArray}
                 />
               </Grid.Col>
+              <Grid.Col span={{ base: 12, xs: 12, sm: 12, md: 6, lg: 3 }}>
+                <Select
+                  label="حالات المؤجل / الراجع / المعالجة"
+                  placeholder="اختر الحالة"
+                  searchable
+                  clearable
+                  allowDeselect
+                  limit={100}
+                  value={filters.notes || null}
+                  data={notesOptions}
+                  onChange={(value) =>
+                    setFilters({
+                      ...filters,
+                      notes: value || undefined,
+                    })
+                  }
+                />
+              </Grid.Col>
+
               <Grid.Col span={{ base: 12, md: 6, lg: 3, sm: 12, xs: 12 }}>
                 <Select
                   value={filters.confirmed ? "true" : "false"}
@@ -405,6 +485,21 @@ export const CustomOrdersFilter = ({
                   ]}
                 />
               </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 4, lg: 3, sm: 12, xs: 12 }}>
+                <Select
+                  label="كشف عميل"
+                  placeholder="اختر كشف عميل"
+                  data={withReportsDataOptions}
+                  clearable
+                  value={filters.client_report || null}
+                  onChange={(e) => {
+                    setFilters({
+                      ...filters,
+                      client_report: e,
+                    });
+                  }}
+                />
+              </Grid.Col>
               {role === "COMPANY_MANAGER" && (
                 <Grid.Col span={{ base: 12, md: 6, lg: 3, sm: 12, xs: 12 }}>
                   <Select
@@ -424,7 +519,10 @@ export const CustomOrdersFilter = ({
                   />
                 </Grid.Col>
               )}
-              {role !== "CLIENT" && role !== "ADMIN_ASSISTANT" ? (
+              {role !== "CLIENT" &&
+              role !== "CLIENT_ASSISTANT" &&
+              role !== "EMPLOYEE_CLIENT_ASSISTANT" &&
+              role !== "ADMIN_ASSISTANT" ? (
                 <>
                   <Grid.Col span={{ base: 12, md: 6, lg: 3, sm: 12, xs: 12 }}>
                     <Select
@@ -482,10 +580,12 @@ export const CustomOrdersFilter = ({
                           ? [
                               { value: "forwardedAll", label: "البريد الوارد" },
                               { value: "receivedAll", label: "البريد الصادر" },
+                              { value: "inside", label: "البريد الداخلي" },
                             ]
                           : [
                               { value: "forwardedAll", label: "البريد الصادر" },
                               { value: "receivedAll", label: "البريد الوارد" },
+                              { value: "inside", label: "البريد الداخلي" },
                             ]
                       }
                     />
@@ -526,19 +626,23 @@ export const CustomOrdersFilter = ({
                       limit={100}
                     />
                   </Grid.Col>
-                  <Grid.Col span={{ base: 12, md: 4, lg: 3, sm: 12, xs: 12 }}>
+
+                  <Grid.Col span={{ base: 12, md: 6, lg: 3, sm: 12, xs: 12 }}>
                     <Select
-                      label="كشف عميل"
-                      placeholder="اختر كشف عميل"
-                      data={withReportsDataOptions}
+                      value={filters.secondaryStatus || null}
+                      allowDeselect
+                      label="نوع الحاله"
+                      searchable
                       clearable
-                      value={filters.client_report || null}
                       onChange={(e) => {
                         setFilters({
                           ...filters,
-                          client_report: e,
+                          secondaryStatus: e || undefined,
                         });
                       }}
+                      placeholder="اختر الحاله"
+                      data={secondaryStatusFilter}
+                      limit={100}
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 12, md: 4, lg: 3, sm: 12, xs: 12 }}>
@@ -652,62 +756,97 @@ export const CustomOrdersFilter = ({
                       }}
                     />
                   </Grid.Col>
-                  <Grid.Col
-                    span={{
-                      base: 12,
-                      md: 4,
-                      lg: 3,
-                      sm: 12,
-                      xs: 12,
-                    }}>
-                    <DatePickerInput
-                      valueFormat="DD MMM YYYY"
-                      label="بداية تاريخ الطلب"
-                      value={
-                        filters.start_date ? new Date(filters.start_date) : null
-                      }
-                      placeholder="اختر تاريخ البداية"
-                      locale="ar"
-                      clearable
-                      onChange={(date) => {
-                        const formattedDate = convertDateFormat(date);
-                        setFilters({
-                          ...filters,
-                          start_date: formattedDate,
-                        });
-                      }}
-                    />
-                  </Grid.Col>
-                  <Grid.Col
-                    span={{
-                      base: 12,
-                      md: 4,
-                      lg: 3,
-                      sm: 12,
-                      xs: 12,
-                    }}>
-                    <DatePickerInput
-                      valueFormat="DD MMM YYYY"
-                      label="نهاية تاريخ الطلب"
-                      placeholder="اختر تاريخ النهاية"
-                      value={
-                        filters.end_date ? new Date(filters.end_date) : null
-                      }
-                      locale="ar"
-                      clearable
-                      onChange={(date) => {
-                        const formattedDate = convertDateFormat(date);
-                        setFilters({
-                          ...filters,
-                          end_date: formattedDate,
-                        });
-                      }}
-                    />
-                  </Grid.Col>
                 </>
               ) : null}
+              <Grid.Col
+                span={{
+                  base: 12,
+                  md: 4,
+                  lg: 3,
+                  sm: 12,
+                  xs: 12,
+                }}>
+                <DatePickerInput
+                  valueFormat="DD MMM YYYY"
+                  label="بداية تاريخ الطلب"
+                  value={
+                    filters.start_date ? new Date(filters.start_date) : null
+                  }
+                  placeholder="اختر تاريخ البداية"
+                  locale="ar"
+                  clearable
+                  onChange={(date) => {
+                    const formattedDate = convertDateFormat(date);
+                    setFilters({
+                      ...filters,
+                      start_date: formattedDate,
+                    });
+                  }}
+                />
+              </Grid.Col>
+              <Grid.Col
+                span={{
+                  base: 12,
+                  md: 4,
+                  lg: 3,
+                  sm: 12,
+                  xs: 12,
+                }}>
+                <DatePickerInput
+                  valueFormat="DD MMM YYYY"
+                  label="نهاية تاريخ الطلب"
+                  placeholder="اختر تاريخ النهاية"
+                  value={filters.end_date ? new Date(filters.end_date) : null}
+                  locale="ar"
+                  clearable
+                  onChange={(date) => {
+                    const formattedDate = convertDateFormat(date);
+                    setFilters({
+                      ...filters,
+                      end_date: formattedDate,
+                    });
+                  }}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 6, lg: 3, sm: 12, xs: 12 }}>
+                <Select
+                  value={filters.created_by?.toString() || null}
+                  allowDeselect
+                  label="من قام بإنشاء الطلب"
+                  searchable
+                  clearable
+                  onChange={(e) => {
+                    setFilters({
+                      ...filters,
+                      created_by: e || "",
+                    });
+                  }}
+                  placeholder="اختر الموظف"
+                  data={getSelectOptions(employees.data)}
+                  limit={100}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 6, lg: 3, sm: 12, xs: 12 }}>
+                <Select
+                  value={filters.updated_by?.toString() || null}
+                  allowDeselect
+                  label="من قام بتحديث الطلب"
+                  searchable
+                  clearable
+                  onChange={(e) => {
+                    setFilters({
+                      ...filters,
+                      updated_by: e || "",
+                    });
+                  }}
+                  placeholder="اختر الموظف"
+                  data={getSelectOptions(employees.data)}
+                  limit={100}
+                />
+              </Grid.Col>
               <Grid.Col span={{ base: 12, md: 6, lg: 3, sm: 12, xs: 12 }}>
                 <Button
+                  mt={20}
                   onClick={() => {
                     setFilters({
                       ...ordersFilterInitialState,

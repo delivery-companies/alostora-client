@@ -2,6 +2,7 @@ import { api } from "@/api";
 import { editOrderEndpoint } from "@/api/apisUrl";
 import type { orderSecondaryStatusArabicNames } from "@/lib/orderSecondaryStatusArabicNames";
 import type { orderStatusArabicNames } from "@/lib/orderStatusArabicNames";
+import { Order } from "./getOrders";
 
 export interface EditOrderPayload {
   paidAmount?: number;
@@ -54,9 +55,10 @@ export const saveOrderInRepositoryService = async ({
   data: EditOrderPayload;
   id: string;
 }) => {
-  const response = await api.patch<EditOrderPayload>(
-    editOrderEndpoint + "addOrderToRepository/" + id,
-    data
-  );
+  const response = await api.patch<{
+    multi?: boolean;
+    status?: string;
+    data?: Order[];
+  }>(editOrderEndpoint + "addOrderToRepository/" + id, data);
   return response.data;
 };

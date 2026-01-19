@@ -9,7 +9,7 @@ export const useRepositories = (
   }
 ) => {
   return useQuery({
-    queryKey: ["repositories", { page, size, minified, type }],
+    queryKey: ["repositories", { page, size, minified, type, branchId }],
     queryFn: () =>
       getRepositoriesService({ page, size, minified, type, branchId }),
   });

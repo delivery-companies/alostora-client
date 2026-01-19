@@ -2,35 +2,51 @@ import { Text, rem } from "@mantine/core";
 import { IconArrowDownLeft, IconArrowUpRight } from "@tabler/icons-react";
 /* eslint-disable react-hooks/rules-of-hooks */
 import type { ColumnDef } from "@tanstack/react-table";
-import { Transaction } from "@/services/getTransactionsService";
+import { Report } from "@/services/getReports";
 
-export const columns: ColumnDef<Transaction>[] = [
+export const columns: ColumnDef<Report>[] = [
   {
     accessorKey: "id",
-    header: "رقم المعامله",
+    header: "رقم الكشف",
   },
   {
     accessorKey: "createdBy.name",
     header: "الناشئ",
   },
   {
-    accessorKey: "employee.user.name",
-    header: "الموظف",
-  },
-  {
     accessorKey: "type",
     header: "نوع المعامله",
-    accessorFn: ({ type }) => {
-      return type === "DEPOSIT" ? "ايداع داخل القاصه" : "سحب من القاصه";
+    accessorFn: ({ type, branchReport }) => {
+      return type === "CLIENT"
+        ? "سحب من القاصه"
+        : type === "DELIVERY_AGENT"
+        ? "ايداع داخل القاصه"
+        : branchReport?.type === "received"
+        ? "سحب من القاصه"
+        : "ايداع داخل القاصه";
+    },
+  },
+  {
+    accessorKey: "type2",
+    header: "نوع الكشف",
+    accessorFn: ({ type, branchReport }) => {
+      return type === "CLIENT"
+        ? "كشف عميل"
+        : type === "DELIVERY_AGENT"
+        ? "كشف مندوب"
+        : branchReport?.type === "received"
+        ? "كشف فرع صادر"
+        : "كشف فرع وارد";
     },
   },
   {
     header: "داخل / خارج",
     cell: ({ row }) => {
-      const { type, paidAmount } = row.original;
+      const { type, branchReport, clientNet, companyNet, branchNet } =
+        row.original;
 
       const renderIcon =
-        type === "WITHDRAW" ? (
+        type === "CLIENT" || branchReport?.type === "received" ? (
           <IconArrowDownLeft
             style={{ width: rem(30), height: rem(30), color: "red" }}
             stroke={1.5}
@@ -48,8 +64,16 @@ export const columns: ColumnDef<Transaction>[] = [
           <Text
             size="sm"
             className="mx-2"
-            c={type === "WITHDRAW" ? "red" : "green"}>
-            {paidAmount.toLocaleString()}
+            c={
+              type === "CLIENT" || branchReport?.type === "received"
+                ? "red"
+                : "green"
+            }>
+            {type === "CLIENT"
+              ? clientNet.toLocaleString()
+              : type === "DELIVERY_AGENT"
+              ? companyNet.toLocaleString()
+              : branchNet.toLocaleString()}
           </Text>
         </div>
       );

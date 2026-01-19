@@ -15,11 +15,13 @@ export interface Employee {
   salary: number;
   role: keyof typeof rolesArabicNames;
   emergency?: boolean | undefined;
+  mainEmergency?: boolean | undefined;
   avatar: string | null;
   idCard: string | null;
   residencyCard: string | null;
   permissions: (keyof typeof permissionsArabicNames)[];
   orderStatus: (keyof typeof orderStatusArabicNames)[];
+  branchId: number;
   branch: {
     id: number;
     name: string;

@@ -30,7 +30,9 @@ export const BranchReportsView = () => {
     size: 10,
     type: "BRANCH",
   });
+
   const { data: reports, isInitialLoading } = useReports(filters);
+
   const {
     data: orders = {
       data: {
