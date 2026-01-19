@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import loginBK from "@/assets/login.svg";
 import loginD from "@/assets/loginD.png";
-import logo from "@/assets/image 1.png";
+import logo from "@/assets/logolight.png";
 
 const schema = z.object({
   username: z.string().min(3, { message: "يجب ان يكون اكثر من 3 احرف" }),
@@ -135,10 +135,10 @@ export const LoginScreen = () => {
             src={logo}
             style={{
               position: "absolute",
-              top: "75px",
+              top: "60px",
               left: "0",
               right: "50%",
-              width: "100px",
+              width: "200px",
               transform: "translateX(50%)",
             }}
           />
